@@ -1,0 +1,2203 @@
+/* ==========================================================================
+   1. 变量与全局重置
+   ========================================================================== */
+:root {
+    --nt-bg: #f8f9fa;
+    --nt-card: rgba(255, 255, 255, 0.85);
+    --nt-text: #333;
+    --nt-primary: #4285f4;
+    --glass-bg: rgba(255, 255, 255, 0.15);
+    --glass-border: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="dark"] {
+    --nt-bg: #121212;
+    --nt-card: rgba(30, 30, 30, 0.85);
+    --nt-text: #e0e0e0;
+}
+/* ==========================================================================
+   隐藏浏览器全局滚动条 (保持滚动功能)
+   ========================================================================== */
+
+/* 针对 Chrome, Safari, Edge 和 Opera */
+html::-webkit-scrollbar {
+    display: none;
+}
+
+/* 针对 Firefox */
+html {
+    scrollbar-width: none;
+}
+
+/* 针对 IE 和旧版 Edge */
+html {
+    -ms-overflow-style: none;
+}
+
+/* 同时也给 body 加一层保险 */
+body {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;     /* Firefox */
+}
+body::-webkit-scrollbar {
+    display: none;             /* Chrome, Safari and Opera */
+}
+/* 当侧边栏打开时，强制 body 不准动 */
+body.sidebar-open {
+    overflow: hidden !important;
+}
+
+#wallpaper-grid, #nt-sidebar {
+    overscroll-behavior: contain; /* 关键：防止滚动溢出到父级 */
+}
+/* ============================================================
+   1. Body 容器（精简后，负责内容布局）
+   ============================================================ */
+body {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    display: block;
+    overflow: hidden;
+    
+    /* 交互补丁 */
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    
+    /* 苹果安全区适配 */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+}
+body {
+    display: flex;
+    flex-direction: column; /* 垂直排列 */
+    align-items: center;    /* 水平居中 */
+    justify-content: center; /* 垂直居中 */
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
+}
+/* ============================================================
+   2. 独立背景层（彻底解决苹果端背景移动、晃动）
+   ============================================================ */
+#nt-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    z-index: -1;
+    pointer-events: none;
+    transition: background-image 0.8s ease-in-out;
+    transform: translateZ(0); 
+    -webkit-transform: translateZ(0); 
+
+    /* 1. 默认设置（通常为电脑端 16:9） */
+    background-image: url('https://bing.img.run/1920x1080.php');
+}
+
+/* 2. 针对手机端（竖屏）的优化 */
+@media (max-width: 768px) and (orientation: portrait) {
+    #nt-bg {
+        background-image: url('https://bing.img.run/m.php'); 
+    }
+}
+#nt-bg video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    transform: translate(-50%, -50%); /* 居中裁剪效果，类似 background-size: cover */
+    object-fit: cover;
+    z-index: -1;
+}
+/* 强制让里面的 iframe 铺满 */
+/* 针对内部所有可能生成的元素进行重置 */
+#nt-bg iframe, 
+#nt-bg video {
+    width: 100% !important;
+    height: 100% !important;
+    border: none !important;
+    display: block;
+    margin: 0;
+    padding: 0;
+}
+/* ==========================================================================
+   2. 主内容容器 (毛玻璃面板)
+   ========================================================================== */
+/* 主容器：固定位置，杜绝跳动 */
+.nt-main {
+    /* 1. 核心定位修改：由 margin 改为 fixed 居中 */
+    /* position: fixed; */
+    /* top: 50%; */
+    /* left: 50%; */
+    /* transform: translate(-50%, -50%); */
+    position: relative; 
+    max-height: calc(100vh - 120px) !important; 
+    margin-bottom: 20px;
+				
+    width: 95%;
+    max-width: 1400px;
+    height: 85vh; 
+    
+    display: flex; 
+    flex-direction: column;
+    overflow: hidden; 
+    box-sizing: border-box;
+
+    /* 2. 增加硬件加速，防止渲染残留 */
+    will-change: transform;
+    -webkit-font-smoothing: antialiased;
+
+    /* 原有样式保持不变 */
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 28px;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+}
+
+/* 头部固定区：不收缩 */
+.nt-header-sticky {
+    flex-shrink: 0;
+    padding: 30px 40px 10px;
+				
+}
+
+/* 内部滚动区：接管所有剩余空间并允许滚动 */
+.nt-scroll-area {
+    flex-grow: 1;
+    overflow-y: auto; /* 允许垂直滚动 */
+    padding: 10px 40px 40px;
+			/* 核心：
+			   0% 到 20px：透明 (给顶部的空隙留白)
+			   20px 到 60px：从透明过渡到黑色 (这是产生笼罩感的渐变区)
+			   60px 到 100%：纯黑色 (确保下方所有图标完全清晰)
+			*/
+			-webkit-mask-image: linear-gradient(
+			    to bottom, 
+			    transparent 0px, 
+			    transparent 20px, 
+			    black 60px, 
+			    black 100%
+			);
+			mask-image: linear-gradient(
+			    to bottom, 
+			    transparent 0px, 
+			    transparent 20px, 
+			    black 60px, 
+			    black 100%
+			);
+			
+			/* 必须配合 padding，让图标初始位置在 60px 之后 */
+			padding-top: 40px; 
+}
+
+.nt-scroll-area::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+}
+/* --- 3. 网格：充满容器 --- */
+.nt-grid {
+    display: grid;
+    /* 缩小 minmax 的最小值到 100px，能挤下更多列 */
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); 
+    gap: 20px;
+    width: 100%; 
+}
+/* ==========================================================================
+   3. 首页图标网格 (四方块风格)
+   ========================================================================== */
+.nt-title {
+    color: var(--nt-card);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0 0 20px 10px;
+}
+
+/* 3. 美化容器内部的滚动条（可选） */
+.nt-main::-webkit-scrollbar {
+    width: 6px;
+}
+.nt-main::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+}
+.nt-card {
+    background: rgba(255, 255, 255, 0.1); /* 默认半透明 */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    border-radius: 18px;
+    text-decoration: none;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+/* 给没出来的图标加一个圆形背景，看起来像还没刷出来的 App */
+.nt-card img {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    min-height: 48px; /* 撑开高度防止抖动 */
+    transition: opacity 0.3s ease;
+}
+.nt-card:hover {
+    transform: translateY(-8px) scale(1.05);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+				background: rgba(255, 255, 255, 0.2);
+				/* 给边框一个微弱的渐变或者特定的亮色 */
+				border-color: rgba(255, 255, 255, 0.5); 
+				box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+}
+
+/* 图标大尺寸 */
+/* 5. 图标细节 */
+.nt-card img, .nt-card .nt-icon-text {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));
+}
+
+/* 文字截断 */
+.nt-card span {
+    color: var(--nt-card);
+    font-size: 13px;
+    font-weight: 500;
+    width: 100%;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+/* ==========================================================================
+   4. 侧边栏与导航组件
+   ========================================================================== */
+/* --- 1. 侧边栏外层：负责定位、形状和动画 --- */
+.nt-sidebar {
+    position: fixed;
+    left: 0;
+    top: 20px;
+    height: calc(100vh - 40px);
+    width: 280px;
+    z-index: 1000;
+    border-radius: 0 24px 24px 0;
+    /* 核心：必须可见，否则拉环会被切掉 */
+    overflow: visible !important; 
+    
+    /* 动画 */
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-out;
+}
+
+/* 侧边栏打开状态 */
+.nt-sidebar.open {
+    transform: translateX(0);
+    box-shadow: 10px 0 30px rgba(0,0,0,0.15);
+}
+
+/* --- 2. 侧边栏内层包裹：负责毛玻璃、边框和滚动 --- */
+.sidebar-scroll-wrapper {
+    width: 100%;
+    height: 100%;
+    
+    /* 核心：分类多了在这里滚动 */
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none; /* 隐藏 Firefox 滚动条 */
+    
+    /* 形状与毛玻璃 */
+    border-radius: 0 24px 24px 0;
+    background: rgba(255, 255, 255, 0.1); 
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-left: none;
+    
+    /* 内部间距：适配刘海和内容 */
+    padding: calc(env(safe-area-inset-top) + 60px) 20px 20px;
+    box-sizing: border-box;
+}
+
+/* 隐藏 Chrome/Safari 滚动条 */
+.sidebar-scroll-wrapper::-webkit-scrollbar {
+    display: none;
+}
+
+/* --- 3. 菜单按钮 (拉环定位) --- */
+#nt-menu-btn {
+    position: absolute;
+    right: -32px; /* 挂在侧边栏右侧边缘 */
+    top: 25px; 
+    
+    width: 32px;
+    height: 40px;
+    border-radius: 0 8px 8px 0;
+    
+    /* 这里的毛玻璃可以稍微亮一点，突出点击感 */
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-left: none;
+    
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1002;
+    transition: all 0.3s ease;
+				-webkit-tap-highlight-color: transparent;
+    user-select: none; /* 防止长按弹出菜单 */
+}
+
+#nt-menu-btn:hover {
+    padding-left: 5px;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* 侧边栏打开时的按钮状态 */
+.nt-sidebar.open #nt-menu-btn {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+/* 边缘触发与遮罩 */
+#nt-edge-trigger {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 12px;
+    height: 100%;
+    z-index: 998;
+    background: transparent;
+}
+
+#nt-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.3);
+    z-index: 999;
+    backdrop-filter: blur(2px);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent; 
+    touch-action: manipulation;
+
+    /* --- 优化点：由 display 改为 opacity 渐变 --- */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s;
+}
+
+#nt-overlay.show {
+    /* --- 优化点：触发显示 --- */
+    opacity: 1;
+    visibility: visible;
+}
+/* 关键：侧边栏打开时，给背后的内容区加个“不可点”状态 */
+body.sidebar-open #nt-scroll-area {
+    pointer-events: none; /* 侧边栏打开时，首页所有的图标都变成“空气”，点不到 */
+}
+/* 只有在支持鼠标的设备上才显示 hover 效果 */
+@media (hover: hover) {
+    #nt-menu-btn:hover {
+        padding-left: 5px;
+        background: rgba(255, 255, 255, 0.3);
+    }
+}
+/* ==========================================================================
+   5. 树状菜单组件
+   ========================================================================== */
+.nt-tree { list-style: none; padding-left: 10px; }
+.sidebar-header{
+     margin-top: 10px;
+	    margin-bottom: 20px;
+	    padding: 0 20px;
+	    font-weight: bold;
+	    color: rgba(255, 255, 255, 0.9);
+}
+.folder-label, 
+.nt-tree-item a {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 8px;
+    font-size: 14px;
+    text-decoration: none;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: 0.2s;
+}
+
+.folder-label:hover, 
+.nt-tree-item a:hover {
+    background: rgba(255, 255, 255, 0.2);
+    /* 给边框一个微弱的渐变或者特定的亮色 */
+    border-color: rgba(255, 255, 255, 0.5); 
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+}
+
+.folder-label .arrow {
+    font-size: 10px;
+    margin-right: 10px;
+    transition: 0.2s;
+    opacity: 0.5;
+}
+
+.nt-tree-folder.active > .folder-label .arrow { transform: rotate(90deg); }
+
+.folder-children {
+    display: none;
+				will-change: transform; /* 告诉浏览器提前准备硬件加速 */
+    border-left: 1px dashed #ddd;
+    margin-left: 18px;
+}
+
+.nt-tree-folder.active > .folder-children { 
+	display: block;
+	animation: fadeIn 0.2s ease-out;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.nt-tree-item img,
+.nt-tree-item .nt-icon-text {
+    width: 18px;
+    height: 18px;
+    margin-right: 12px;
+}
+
+/* 文字图标通用样式 */
+.nt-icon-text {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--nt-card);
+    font-weight: bold;
+    border-radius: 14px;
+    /* 也可以给首字图标也加点毛玻璃感 */
+    backdrop-filter: blur(5px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+/* 侧边栏内的小图标 */
+.nt-tree-item .nt-icon-text {
+    line-height: 18px;
+    font-size: 10px;
+    border-radius: 4px;
+}
+
+/* 首页大卡片里的大图标 */
+.nt-card .nt-icon-text {
+    line-height: 48px;
+    font-size: 20px;
+    border-radius: 12px;
+}
+
+/* 滚动条美化 */
+.nt-sidebar::-webkit-scrollbar { width: 4px; }
+.nt-sidebar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+
+
+/* ==========================================================================
+   2. 顶部时间与搜索区 (视觉升级版)
+   ========================================================================== */
+.header-section {
+    text-align: center;
+    width: 100%;
+    color: var(--nt-card); /* 全局设为白色，更显干净 */
+}
+
+/* 引入一款极简高级字体 (可选，不引也会走系统默认极细) */
+@import url('https://cdn.jsdelivr.net/npm/inter-ui@3.19.3/inter.css');
+/* 时间显示：极细、半透明、微发光 */
+.nt-clock {
+    /* 优先使用 Inter，没有则用苹果/安卓的极细字体 */
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    font-size: 90px;
+    font-weight: 100; /* 越细越有高级感 */
+    letter-spacing: -2px; /* 字符稍微靠拢，更有设计感 */
+    color: rgba(255, 255, 255, 0.95);
+    
+    /* 核心：柔和的发光效果替代生硬的阴影 */
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.15), 
+                 0 10px 30px rgba(0, 0, 0, 0.2);
+    margin-bottom: 5px;
+    line-height: 1;
+}
+
+/* 日期显示：淡雅灰白 */
+.nt-date {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.7); /* 稍微调淡，拉开主次感 */
+    letter-spacing: 2px; /* 增加字间距，显得精致 */
+    /* margin-bottom: 40px; */
+    text-transform: uppercase; /* 英文或拼音时会变全大写 */
+				display: inline-table; /* 或者 inline-block，让宽度随字数变化 */
+    cursor: pointer;       /* 增加小手形状，明确告诉用户这里可点 */
+    margin: 0 auto;        /* 如果需要居中，配合 text-align: center 使用 */
+    padding: 2px 10px;    /* 适当增加内边距，让点击稍微容易点，但不占整行 */
+    width: auto !important; /* 强制覆盖可能存在的 width: 100% */
+}
+
+/* 分类标签容器 */
+.nt-tabs {
+    display: flex;
+    justify-content: flex-start; /* 改为左对齐，方便滑动 */
+    gap: 12px;
+    margin: 0 auto 30px;
+    max-width: 600px; /* 限制导航栏总宽度，不让它拉太长 */
+    padding: 10px 20px;
+    
+    overflow-x: auto; /* 开启横向滚动 */
+    white-space: nowrap; /* 强制不换行 */
+    scrollbar-width: none; /* 隐藏滚动条 (Firefox) */
+    -ms-overflow-style: none; /* 隐藏滚动条 (IE) */
+				user-select: none; 
+				    -webkit-user-select: none; /* Safari */
+				    -moz-user-select: none;    /* Firefox */
+				    -ms-user-select: none;     /* IE/Edge */
+				    
+				    /* 额外优化：禁止图片被拖出虚影 */
+				    -webkit-user-drag: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+    /* 渐变遮罩：左右边缘淡出效果，看起来更高档 */
+    mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+}
+
+.nt-tabs::-webkit-scrollbar {
+    display: none; /* 隐藏滚动条 (Chrome/Safari) */
+}
+
+.nt-tab {
+    flex-shrink: 0; /* 极其重要：防止标签被挤压变窄 */
+    padding: 8px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 6px 18px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.nt-tab:hover {
+    color: var(--nt-card);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* 激活状态样式 */
+.nt-tab.active {
+    color: var(--nt-card);
+				text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+
+/* 引擎触发器样式 */
+.nt-engine-trigger {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    flex-shrink: 0; /* 防止图标被压缩 */
+    margin-right: 10px;
+}
+
+#current-engine-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    object-fit: contain;
+}
+
+.nt-engine-trigger img {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+}
+
+.nt-engine-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 50px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.nt-engine-item:hover {
+    transform: translateY(
+				text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);-2px);
+}
+
+.nt-engine-item span {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.9);
+}
+/* 1. 搜索框唯一外壳 */
+.nt-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    max-width: 500px;
+    height: 46px;
+    margin: 0 auto 30px;
+    padding: 0 18px;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 23px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    z-index: 100; /* 确保搜索框在普通图标之上 */
+}
+
+.nt-search:focus-within {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    max-width: 540px;
+}
+
+/* 2. 内部输入框 */
+#nt-search-input {
+    flex: 1;
+    height: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0 12px;
+}
+/* 强制覆盖浏览器的自动填充背景色 */
+#nt-search-input:-webkit-autofill,
+#nt-search-input:-webkit-autofill:hover, 
+#nt-search-input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0) inset !important;
+    -webkit-text-fill-color: white !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+.suggestion-item, 
+#nt-search-suggestions li {
+    background: transparent !important;
+    color: white !important;
+    padding: 12px 20px !important;
+    border: none !important;
+}
+
+/* 鼠标滑过历史记录时的颜色 */
+.suggestion-item:hover, 
+#nt-search-suggestions li:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 如果那个气泡有个白色的小尖角（伪元素），也把它变透明或隐藏 */
+#nt-search-suggestions::before {
+    display: none !important;
+}
+/* 3. 左侧引擎触发器 */
+.nt-engine-trigger {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding-right: 12px;
+    margin-right: 4px;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#current-engine-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+}
+
+/* 4. 重点：弹出菜单的基础样式 */
+.nt-search-menu {
+    position: absolute;
+    top: 56px;
+    left: 0;
+    
+    /* 默认隐藏 */
+    display: none; 
+    
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border-radius: 20px;
+    padding: 15px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 10000; /* 极高层级，防止被遮挡 */
+    flex-direction: row;
+    gap: 15px;
+}
+
+/* 5. 核心：当 JS 给菜单添加 .show 类时，强制切换为显示 */
+.nt-search-menu.show {
+    display: flex; 
+    animation: menuShow 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+/* 6. 菜单子项 */
+.nt-engine-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 54px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.nt-engine-item img {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: white;
+    padding: 5px;
+    margin-bottom: 6px;
+}
+.nt-engine-item span {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.nt-engine-item:hover {
+    transform: translateY(-4px);
+}
+
+/* 动画定义 */
+@keyframes menuShow {
+    from { opacity: 0; transform: scale(0.9) translateY(-10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+/* 当菜单展开时，给触发器加个微亮效果 */
+.nt-search:has(.nt-search-menu.show) .nt-engine-trigger {
+    opacity: 1;
+    filter: brightness(1.2);
+}
+
+/* 如果你有小箭头图标，可以让它旋转 */
+.nt-search-menu.show ~ .nt-search-arrow {
+    transform: rotate(180deg);
+}
+/* 建议列表容器 */
+.suggestion-list {
+    position: absolute;
+    top: 100%; /* 紧贴搜索框底部 */
+    left: 0;
+    width: 100%;
+    background: rgba(0,0,0,0.3); /* 毛玻璃底色 */
+    backdrop-filter: blur(25px);
+    border-radius: 20px;
+    margin-top: 8px;
+    padding: 10px 0;
+    list-style: none;
+    display: none; /* 默认隐藏 */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 2000;
+}
+
+/* 每一个建议项 */
+.suggestion-item {
+    padding: 10px 20px;
+    color: var(--nt-card);
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+}
+
+/* 加上左侧的小放大镜图标，模仿图 6 */
+.suggestion-item::before {
+    content: "🔍";
+    font-size: 12px;
+    margin-right: 12px;
+    opacity: 0.6;
+}
+
+.suggestion-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+/* ==========================================================================
+   手机端适配 (深度优化版)
+   ========================================================================== */
+@media (max-width: 768px) {
+    /* 1. 基础布局容器重置 */
+    .nt-main {
+     background: rgba(0, 0, 0, 0.2);
+     transform: none;
+     max-height: none !important;
+     border-radius: 0 !important;
+     position: fixed !important;
+     display: flex !important;
+     flex-direction: column !important;
+     margin: 0 !important;
+     padding: 0 !important;
+     overflow: hidden !important;
+					/* 1. 强制绝对定位到顶角 */
+     top: 0 !important;   /* 必须加这个，确保从屏幕最上方开始 */
+     left: 0 !important;
+     
+     /* 2. 强制占满全屏，不留缝隙 */
+     width: 100vw !important;  /* 使用 vw 代替 % 更稳 */
+     height: 100vh !important; /* 使用 vh 确保占满整个视图高度 */
+     
+     /* 3. 消除所有可能的边距 */
+     padding-top: 0 !important; 
+     box-sizing: border-box !important;
+				}
+    /* 2. 头部、时间与导航标签 */
+    .nt-header-sticky { padding: 60px 20px 10px; overflow: visible; }
+    .nt-clock { font-size: 50px; margin-bottom: 0; }
+    .nt-tabs { gap: 8px; padding: 0 10px; }
+    .nt-tab { font-size: 12px; padding: 4px 12px; }
+    /* 3. 搜索框专项 (50% 宽度适配) */
+    .nt-search {
+        width: 50%; height: 42px;
+        margin: 15px auto; padding-right: 40px;
+        position: relative; max-width: none;
+    }
+    #nt-search-input { width: 100%; font-size: 13px; }
+    /* 小镜子精准定位 */
+    .nt-search-icon-right {
+        position: absolute; right: 12px; left: auto;
+        top: 50%; transform: translateY(-50%);
+        display: block;
+    }
+    /* 4. 搜索引擎选择菜单 (固定定位防截断) */
+    .nt-search-menu {
+        position: fixed; top: 50px; left: 5%;
+        width: 90%; height: auto;
+        display: none; gap: 10px; padding: 15px;
+        background: rgba(30, 30, 30, 0.8);
+        backdrop-filter: blur(25px);
+        border-radius: 20px; z-index: 999999;
+    }
+    .nt-search-menu.show { display: grid; grid-template-columns: repeat(3, 1fr); }
+    
+    .nt-ngiene-item { width: 100%; pointer-events: auto; }
+    .nt-engine-item img { width: 36px; height: 36px; }
+    .nt-engine-item span { font-size: 11px; margin-top: 4px; }
+    .nt-engine-trigger { pointer-events: auto; -webkit-user-select: none; }
+
+    /* 5. 图标网格区域 (一行4列) */
+    .nt-scroll-area {
+        flex: 1 !important; /* 占据剩余所有高度 */
+        overflow-y: auto !important; /* 允许内部滚动 */
+        -webkit-overflow-scrolling: touch; /* 顺滑滚动 */
+        padding: 10px 20px 120px !important; /* 底部 padding 留够，防 Dock 遮挡 */
+        
+        -webkit-mask-image: linear-gradient(to bottom, transparent 0px, transparent 20px, black 60px, black 100%);
+    }
+    #nt-featured-content, .nt-grid {
+        display: grid; width: 100%;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px; box-sizing: border-box;
+    }
+    .nt-card { width: 100%; padding: 10px 0; min-width: 0; }
+    .nt-card img, .nt-card .nt-icon-text { width: 45px; height: 45px; }
+    .nt-card span { font-size: 11px; max-width: 90%; }
+				#nt-menu-btn {
+					top: 50px;
+				}
+}
+/* 底部诗词 */
+.nt-poem {
+    position: absolute; /* 相对于父容器定位 */
+    top: 35px;         /* 距离顶部的距离，你可以根据视觉微调 */
+    right: 40px;        /* 距离右侧的距离 */
+    text-align: right;  /* 文字右对齐，更有设计感 */
+    width: auto;
+    z-index: 100;
+    pointer-events: none; /* 防止遮挡鼠标点击后面的功能 */
+}
+
+#poem-content {
+    display: block;
+    font-size: 15px;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.7); /* 淡淡的白色 */
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+#poem-info {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+    font-style: italic; /* 斜体增加高级感 */
+}
+
+/* 📱 手机端：为了不挡住顶部的时钟或菜单，我们直接隐藏它 */
+@media (max-width: 768px) {
+    .nt-poem {
+        display: none !important; 
+    }
+}
+/* 天气 */
+/* 左侧天气挂件：与右侧诗词镜像对称 */
+.nt-weather {
+    position: absolute;
+    top: 35px;         /* 与右侧诗词高度一致 */
+    left: 40px;        /* 距离左侧，与右侧对称 */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* 左对齐 */
+    z-index: 100;
+    color: rgba(255, 255, 255, 0.7);
+    pointer-events: none;
+}
+
+.weather-text {
+    text-align: left;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+#weather-city {
+    display: block;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+    margin-bottom: 2px;
+}
+
+#weather-temp {
+    font-size: 18px; /* 温度大一点 */
+    font-weight: 300;
+    margin-right: 5px;
+}
+
+#weather-desc {
+    font-size: 14px;
+    font-weight: 300;
+}
+
+/* 📱 手机端：左右挂件全部隐藏，保持清爽 */
+@media (max-width: 768px) {
+    .nt-weather { display: none !important; }
+}
+
+/* 日历 */
+/* ============================================================
+   1. 基础容器与遮罩 (毛玻璃全屏)
+   ============================================================ */
+.modal-overlay {
+    /* 1. 基础定位：全屏覆盖 */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    
+    /* 2. 布局：让内部卡片（日历）绝对居中 */
+    display: none; /* 由 JS 控制显示/隐藏 */
+    justify-content: center;
+    align-items: center;
+    
+    /* 3. 层级：确保在所有窗口和 Dock 之上 */
+    z-index: 99999; 
+    
+    /* 4. 视觉：深色半透明 + 强力磨砂感 */
+    background: rgba(0, 0, 0, 0.45); /* 稍微深一点，更有沉浸感 */
+    backdrop-filter: blur(15px) saturate(150%); /* 增加饱和度，颜色更高级 */
+    -webkit-backdrop-filter: blur(15px) saturate(150%);
+    
+    /* 5. 动画预设（可选）：让弹出更丝滑 */
+    transition: opacity 0.3s ease;
+}
+
+/* 日历主卡片 */
+.calendar-card {
+    display: flex; /* 默认横排 */
+    flex-direction: row;
+    width: 920px;
+    height: 620px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+/* ============================================================
+   2. 左侧：日历主体区 (FullCalendar)
+   ============================================================ */
+#calendar-left {
+    flex: 1.8;
+    padding: 24px;
+    background: #fff;
+    border-right: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* 内部 FullCalendar 样式美化 */
+.fc .fc-toolbar-title { font-size: 1.4rem !important; font-weight: 600; color: #333; }
+.fc-daygrid-day-top { flex-direction: column !important; align-items: center !important; padding-top: 6px !important; }
+.fc-daygrid-day-number { font-size: 14px; color: #444; text-decoration: none !important; }
+.fc-day-sat .fc-daygrid-day-number, .fc-day-sun .fc-daygrid-day-number { color: #ff4d4f !important; }
+
+/* 农历与节日 */
+.lunar-text, .lunar-day-text { font-size: 10px; color: #999; margin-top: 2px; }
+.is-festival { color: #1a73e8 !important; font-weight: 500; }
+
+/* FullCalendar 按钮 */
+.fc .fc-today-button {
+    background-color: #1a73e8 !important; border: none !important; border-radius: 8px !important; padding: 5px 15px !important;
+}
+.fc .fc-button-primary:not(.fc-today-button) {
+    background: transparent !important; border: none !important; color: #666 !important;
+}
+/* 强制取消日程区域的最小高度限制，解决6行月份截断问题 */
+.fc-daygrid-body-unbalanced .fc-daygrid-day-events {
+    min-height: 0 !important;
+}
+
+/* 配合这个效果更好：让单元格内容区域也取消最小高度 */
+.fc-daygrid-day-frame {
+    min-height: 0 !important;
+}
+/* ============================================================
+   3. 右侧：沉浸式详情面板
+   ============================================================ */
+.calendar-right {
+    flex: 1;
+    padding: 40px 30px;
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+#res-date {
+    font-size: 84px;
+    font-weight: 800;
+    color: #1a73e8;
+    line-height: 1;
+    text-shadow: 0 4px 15px rgba(26, 115, 232, 0.15);
+}
+
+#res-day { font-size: 20px; color: #333; font-weight: 600; margin: 15px 0 5px; }
+#res-lunar { font-size: 14px; color: #666; background: rgba(0,0,0,0.05); padding: 4px 12px; border-radius: 20px; }
+
+/* 宜忌区 */
+.lunar-info-box { width: 100%; margin-top: 30px; display: flex; flex-direction: column; gap: 16px; }
+.lunar-item {
+    padding: 16px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+    text-align: left;
+}
+.lunar-item .label { font-size: 11px; color: #bbb; letter-spacing: 1px; margin-bottom: 8px; display: block; }
+
+#res-yi { color: #27ae60; border-left: 4px solid #27ae60; padding-left: 12px; font-weight: 600; }
+#res-ji { color: #e74c3c; border-left: 4px solid #e74c3c; padding-left: 12px; font-weight: 600; }
+
+/* 底部关闭按钮 */
+.close-cal {
+    margin-top: auto;
+    width: 85%;
+    padding: 12px;
+    border: none;
+    background: rgba(0, 0, 0, 0.06);
+    color: #555;
+    font-weight: 600;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+.close-cal:hover { background: #333; color: #fff; }
+
+/* ============================================================
+   4. 移动端适配 (重点修复)
+   ============================================================ */
+@media (max-width: 768px) {
+    .calendar-card {
+        flex-direction: column; /* 强制变竖排 */
+        width: 94vw;
+        height: 88vh;
+        overflow-y: auto;
+    }
+
+    #calendar-left {
+        flex: none;
+        width: 100%;
+        padding: 15px;
+        border-right: none;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .calendar-right {
+        flex: none;
+        width: 100%;
+        padding: 25px 0px;
+        background: #fff; /* 手机端取消右侧毛玻璃，保证性能 */
+    }
+
+    #res-date { font-size: 56px; }
+    
+    .lunar-info-box {
+        flex-direction: row; /* 宜忌在手机上左右并排 */
+        gap: 10px;
+    }
+    .lunar-item { flex: 1; padding: 12px; }
+}
+
+/* =============
+    切换按钮
+============= */
+#nt-page-switcher {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--nt-card);
+    text-decoration: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    z-index: 1000; /* 确保在最顶层 */
+}
+
+#nt-page-switcher:hover {
+    background: rgba(255, 255, 255, 0.4);
+    transform: scale(1.1) rotate(180deg); /* 增加一个旋转动画，更有趣 */
+}
+
+/* 手机端适配：往上挪一点，避开某些手机的底部横条 */
+@media (max-width: 768px) {
+    #nt-page-switcher {
+        right: 15px;
+        bottom: 20px; /* 避开可能存在的底部 Dock 栏 */
+        width: 40px;
+        height: 40px;
+    }
+}
+
+/* 强制触发硬件加速，让动画更顺滑 */
+.nt-grid {
+    backface-visibility: hidden;
+    will-change: transform, opacity;
+}
+/* 切换动画 */
+@keyframes slideInRight {
+    from { opacity: 0; transform: translateX(50px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-50px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* 加上 !important 确保样式不被覆盖 */
+.slide-in-right {
+    animation: slideInRight 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both !important;
+}
+/* 自定义输入框样式 */
+#custom-section input {
+    width: 100%; padding: 10px; border-radius: 8px;
+    border: 1px solid #ddd; margin-bottom: 10px;
+}
+/* 自定义区域容器 */
+#custom-section {
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+				width: 100%;
+    height: auto;
+}
+
+/* 输入框美化 */
+.custom-input-group {
+    width: 100%;
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+}
+
+#wp-input {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,0.1);
+    background: rgba(255,255,255,0.5);
+    outline: none;
+    transition: 0.3s;
+}
+
+#wp-input:focus {
+    border-color: #007aff;
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(0,122,255,0.1);
+}
+
+/* 核心：把丑按钮藏起来，美化 Label */
+.file-upload-wrapper {
+    width: 100%;
+    position: relative;
+}
+
+#wp-file {
+    display: none; /* 隐藏原生输入框 */
+}
+
+.file-upload-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 120px;
+    border: 2px dashed rgba(0,0,0,0.1);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s;
+    color: #666;
+    background: rgba(0,0,0,0.02);
+}
+
+.file-upload-label:hover {
+    background: rgba(0,122,255,0.05);
+    border-color: #007aff;
+    color: #007aff;
+}
+
+.file-upload-label i {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+/* 统一的动作按钮 */
+.primary-btn {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #007aff, #0051ff);
+    color: var(--nt-card);
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(0,122,255,0.3);
+}
+
+.primary-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0,122,255,0.4);
+}
+
+.primary-btn:active {
+    transform: translateY(0);
+}
+/* 橡皮筋抖动动画 */
+@keyframes rubberBandLeft {
+    0% { transform: translateX(0); }
+    30% { transform: translateX(20px); }
+    60% { transform: translateX(0); }
+}
+
+.edge-shake-left { animation: rubberBandLeft 0.4s ease-in-out; }
+.edge-shake-right { animation: rubberBandRight 0.4s ease-in-out; }
+/* ================================================= */
+/* 1. 基础样式：确保点击精准 */
+/* ================================================= */
+.header-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none; /* 防止容器遮挡下方点击 */
+}
+
+#clock, #date {
+    display: inline-block;
+    width: fit-content;
+    pointer-events: auto; /* 仅文字可点 */
+    user-select: none;
+    cursor: pointer;
+}
+
+/* ================================================= */
+/* 2. 沉浸模式：清屏补丁（排除时间） */
+/* ================================================= */
+
+/* 隐藏所有干扰 UI，但不包括 .header-section */
+.zen-mode #nt-search-container,
+.zen-mode #nt-category-tabs,
+.zen-mode #nt-scroll-area,
+.zen-mode #nt-menu-btn,
+.zen-mode #nt-wallpaper-btn,
+.zen-mode #poem-container,
+.zen-mode #weather-container,
+.zen-mode #nt-featured-content,
+.zen-mode .nt-sidebar,
+.zen-mode #nt-edge-trigger,
+.zen-mode #dock-trigger,
+.zen-mode #bottom-dock,
+.zen-mode #nt-page-switcher { 
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transition: opacity 0.2s ease-out, visibility 0.2s !important;
+}
+
+/* 重点：对付毛玻璃大方块 (.nt-main) */
+body.zen-mode .nt-main {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important; /* 消除宽度限制对居中的影响 */
+}
+
+/* ================================================= */
+/* 3. 核心：时间居中并置顶 */
+/* ================================================= */
+
+body.zen-mode .header-section {
+    opacity: 1 !important;
+    visibility: visible !important;
+    position: fixed !important; /* 脱离文档流，绝对居中 */
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) scale(1.2) !important; /* 居中并放大 */
+    /* z-index: 999999 !important; */
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+    pointer-events: none; 
+}
+
+/* 确保文字依然可点，用于返回 */
+body.zen-mode #clock, 
+body.zen-mode #date {
+    pointer-events: auto !important;
+    text-shadow: 0 2px 15px rgba(0,0,0,0.3); /* 防止背景太亮看不清时间 */
+}
+
+/* ================================================= */
+/* 4. 背景与搜索框彻底清理 */
+/* ================================================= */
+.zen-mode #nt-bg {
+    filter: none !important;
+    backdrop-filter: none !important;
+}
+
+/* 彻底杀掉搜索框，不让它在居中位置留残影 */
+body.zen-mode #nt-search-container {
+    display: none !important;
+}
+
+/* 1. 强制修改输入框内的文字颜色 */
+#nt-search-input {
+    color: var(--nt-card) !important;
+    -webkit-text-fill-color: white !important; /* 解决部分浏览器渲染问题 */
+}
+
+#nt-search-input::placeholder {
+    color: var(--nt-card) !important;
+}
+
+/* 兼容旧版浏览器的写法 */
+#nt-search-input::-webkit-input-placeholder {
+    color: var(--nt-card) !important;
+}
+.zen-mode .nt-card {
+    opacity: 0 !important;
+    transition: none !important;
+}
+
+
+/* 切换壁纸 */
+/* --- 0. 基础重置（防止边距计算错误） --- */
+#wallpaper-modal, 
+#wallpaper-modal *, 
+#wallpaper-modal *::before, 
+#wallpaper-modal *::after {
+    box-sizing: border-box; /* 强制所有元素包含边距计算 */
+}
+
+/* --- 1. 触发按钮 --- */
+#nt-wallpaper-btn {
+    position: fixed; bottom: 80px; right: 20px;
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    cursor: pointer; z-index: 1000; transition: 0.3s;
+    display: flex; align-items: center; justify-content: center;
+}
+#nt-wallpaper-btn:hover { background: rgba(255, 255, 255, 0.4); transform: rotate(90deg); }
+
+/* --- 3. 弹窗窗口主体 --- */
+.modal-window {
+    display: flex;
+    flex-direction: row; /* 默认横向布局 */
+    width: 100%;
+    max-width: 900px;
+    height: 80vh;
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.4);
+}
+
+/* --- 4. 侧边栏 (PC端) --- */
+.modal-sidebar {
+    width: 180px;
+    background: rgba(0, 0, 0, 0.03);
+    padding: 20px 10px;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0; /* 禁止侧边栏被挤压 */
+}
+.sidebar-title { font-size: 20px; margin: 0 0 20px 15px; color: #333; font-weight: bold; }
+.sidebar-menu { list-style: none; padding: 0; margin: 0; }
+.sidebar-menu li {
+    padding: 10px 15px; margin: 4px 0; border-radius: 8px;
+    cursor: pointer; font-size: 14px; transition: 0.2s;
+}
+.sidebar-menu li.active { background: #007aff; color: #fff; }
+.sidebar-menu li:hover:not(.active) { background: rgba(0,0,0,0.05); }
+
+/* --- 5. 右侧内容区 --- */
+.modal-body {
+    flex: 1;
+    min-width: 0; /* 关键：允许 Flex 子项缩小到比内容小 */
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+				overflow-y: auto !important;
+				max-height: 80vh;
+}
+.body-header {
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    flex-shrink: 0;
+}
+.close-btn { 
+    border: none; background: #eee; width: 28px; height: 28px; 
+    border-radius: 50%; cursor: pointer; display: flex; 
+    align-items: center; justify-content: center;
+}
+
+/* --- 6. 核心图片网格 (解决溢出的关键) --- */
+/* 使用 ID 选择器确保最高优先级，彻底解决堆叠 */
+#wallpaper-grid {
+    display: grid !important; 
+    /* PC端强制4列，不管有没有滚动条都不动摇 */
+    grid-template-columns: repeat(4, 1fr) !important; 
+    gap: 12px !important;
+    padding: 15px !important;
+    width: 100% !important;
+    
+    /* 解决滚动的核心：必须有高度 */
+    height: 100% !important; 
+				height: auto;
+    max-height: 100% !important;
+    overflow-y: auto !important; 
+    align-content: start;
+    /* 强制分行排布，不要让它变成单行横向滚动 */
+    grid-auto-flow: row !important; 
+    align-content: start !important;
+}
+
+/* 手机端适配：彻底解决不滚动 */
+@media (max-width: 768px) {
+    #wallpaper-grid {
+        /* 手机端强制2列 */
+        grid-template-columns: repeat(2, 1fr) !important; 
+        
+        /* 关键：给手机端一个固定高度，否则无法滚动 */
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important; /* 增加滑动顺滑度 */
+        
+        gap: 8px !important;
+        padding: 10px !important;
+    }
+}
+.wp-thumb {
+    /* 1. 布局与尺寸 */
+    width: 100%;
+    aspect-ratio: 16 / 9;      /* 锁定 16:9 比例，防止挤压变形 */
+    position: relative;
+    min-width: 0;              /* 关键：防止被 Grid 内容撑开导致布局错乱 */
+    height: 13vh;
+    /* 2. 视觉样式 */
+    overflow: hidden;          /* 必须开启，否则子元素图片圆角会失效 */
+    border-radius: 10px;       /* 统一圆角大小 */
+    background-color: #f0f0f0; /* 图片加载前的占位底色 */
+    border: 2px solid transparent; /* 为 Hover 边框预留位置 */
+    
+    /* 3. 交互与动画 */
+    cursor: pointer;
+    transition: all 0.2s ease; /* 让缩放和边框变化更平滑 */
+}
+
+/* 悬停效果：轻微放大并显示蓝色边框 */
+.wp-thumb:hover { transform: scale(1.02); border-color: #007aff; }
+
+/* 当图片加载完成后，通过 JS 给它加上这个类 */
+.wp-thumb img.loaded {
+    opacity: 1;
+}
+/* 2. 图片：核心魔法 */
+/* 图片基础样式 */
+.wp-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* 核心：防变形 */
+    display: block;
+    opacity: 0; /* 默认透明，配合 onload 动画 */
+    transition: opacity 0.3s ease;
+}
+
+/* 名字标签优化 */
+.wp-thumb-name {
+    position: absolute; 
+    /* bottom: 5px; */
+    /* left: 8px; */
+    font-size: 10px; 
+    color: rgba(255,255,255,0.9); 
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+    pointer-events: none; /* 关键：点击文字也能穿透到外层触发换壁纸 */
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* 名字太长显示省略号，防止破屏 */
+				background: linear-gradient(transparent, rgba(0,0,0,0.6)) !important; /* 改用渐变，不遮挡图片 */
+    width: 100%;
+    left: 0 !important;
+    bottom: 0 !important;
+    padding: 15px 8px 5px 8px !important; /* 增加顶部透明过渡 */
+}
+/* 3. 针对手机端的 2 列布局 */
+@media (max-width: 768px) {
+    .wp-thumb {
+        /* 手机端也可以换个比例，比如 4:3 看起来大一点 */
+        aspect-ratio: 4 / 3; 
+								height: 13vh;
+    }
+}
+/* 视频角标 */
+.play-badge {
+    position: absolute; top: 8px; right: 8px;
+    background: rgba(0,0,0,0.5); color: #fff;
+    padding: 2px 6px; border-radius: 4px; font-size: 10px;
+}
+.wp-date-tag {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    padding: 2px 8px;
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    font-size: 10px;
+    backdrop-filter: blur(4px); /* 磨砂效果 */
+    border-top-right-radius: 8px;
+				background: rgba(0, 0, 0, 0.4) !important;
+    font-size: 9px !important;
+    padding: 1px 4px !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 8px !important;
+}
+/* --- 7. 手机端适配 (全量重写) --- */
+@media (max-width: 768px) {
+    #nt-wallpaper-btn {
+		   bottom: 65px;
+		   right: 15px;
+    }
+    .modal-window {
+        flex-direction: column; /* 变纵向 */
+        height: 85vh;
+    }
+
+    .modal-sidebar {
+        width: 100%;
+        height: auto;
+        padding: 10px;
+        flex-direction: row;
+        overflow-x: auto;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    .sidebar-title { display: none; }
+    .sidebar-menu { display: flex; flex-direction: row; gap: 5px; }
+    .sidebar-menu li { white-space: nowrap; padding: 6px 12px; font-size: 13px; }
+    .body-header { padding: 10px 15px; }
+}
+
+/* Dock */
+/* --- 基础容器 (PC端) --- */
+.dock-container {
+    /* 核心居中代码 */
+    position: relative !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+				
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 16px;
+    padding: 8px 15px; /* 左右稍微加点内边距更好看 */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    /* z-index: 2000; */
+    /* 注意：这里的 transition 要包含 transform，否则动画会卡顿 */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dock-content {
+    display: flex;
+    gap: 8px;
+}
+
+.dock-item {
+    background: transparent;
+    border: none;
+    color: white;
+    padding: 10px 15px;
+    font-size: 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s;
+}
+
+.dock-item {
+    /* 取消 CSS 的 transition，或者设置得非常短(0.1s)，否则 JS 计算会延迟 */
+    transition: transform 0.1s ease-out, margin 0.1s ease-out; 
+    transform-origin: bottom center;
+    will-change: transform; /* 告诉浏览器优化这个属性 */
+}
+
+.dock-item:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+.dock-item {
+    margin: 0 10px !important; /* 间距固定，不再随缩放改变 */
+    flex-shrink: 0;           /* 防止被挤压变形 */
+}
+.dock-item {
+    /* 增加一个非常短的 transition，过滤掉高频微颤 */
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0.2, 1); 
+    will-change: transform;
+}
+/* PC端隐藏触发按钮 */
+#dock-trigger {
+    display: none;
+}
+.app-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px; /* 经典的 App 圆角 */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    transition: all 0.2s ease;
+}
+/* svg渐变底色 */
+.yanhua-bg {
+    background: linear-gradient(135deg, #2fc5ffad 0%, #2f24ddc4 100%);
+    color: white; /* 让里面的 SVG 变白色 */
+}
+.calendar-bg {
+    background: linear-gradient(135deg, #FF5E62 0%, #FF9966 100%);
+    color: white;
+}
+.daye-bg {
+    background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.1) 100%);
+    color: white;
+}
+.cesu-bg {
+    background: linear-gradient(135deg, #aec0d1 0%, #007aff 100%);
+    color: white;
+}
+.dock-item:hover .app-icon {
+    transform: translateY(-5px) scale(1.1);
+}
+/* --- 📱 手机端适配 --- */
+@media (max-width: 768px) {
+    /* 2. Dock 容器基础状态：缩在下面 */
+.dock-container {
+    position: fixed !important;
+    left: 15px !important;
+    /* 初始状态：向下偏移 + 缩小 */
+    transform: translateY(20px) scale(0.8) !important; 
+    transform-origin: bottom center; /* 确保缩放从底部开始 */
+    
+    bottom: -300px !important; 
+    opacity: 0;
+    pointer-events: none;
+    
+    /* 使用更灵动的贝塞尔曲线 (回弹效果) */
+    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
+                bottom 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
+                opacity 0.4s ease !important;
+    
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 5px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(15px);
+    border-radius: 20px;
+}
+    /* ✨ 关键修复：定义展开后的样子 (active 类) */
+    .dock-container.active {
+        bottom: 85px !important; /* 弹出到按钮上方 */
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0) scale(1) !important; 
+    }
+
+    .dock-item {
+        text-align: left;
+        /* width: 150px; */
+        padding: 12px 5px;
+        /* background: rgba(255, 255, 255, 0.05); */
+        margin-bottom: 5px;
+        opacity: 0;
+        transform: translateY(10px);
+        transition: all 0.4s ease;
+}
+/* 当父级激活时，图标恢复 */
+.dock-container.active .dock-item {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 给每个图标设置延迟，形成阶梯感 */
+.dock-container.active .dock-item:nth-child(1) { transition-delay: 0.1s; }
+.dock-container.active .dock-item:nth-child(2) { transition-delay: 0.15s; }
+.dock-container.active .dock-item:nth-child(3) { transition-delay: 0.2s; }
+.dock-container.active .dock-item:nth-child(4) { transition-delay: 0.25s; }
+    /* 3. 左下角触发按钮 */
+    #dock-trigger {
+        display: flex !important; /* 确保显示 */
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        left: 20px;
+        bottom: 20px;
+        width: 50px;
+        height: 50px;
+        border-radius: 15px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        /* z-index: 2001; */
+    }
+				.pc-only {
+        display: none !important;
+    }
+}
+/* --- 1. 变量与基础 (方便以后统一改色) --- */
+:root {
+    --win-bg: rgba(30, 30, 30, 0.85); /* 窗口半透明背景 */
+    --win-border: rgba(255, 255, 255, 0.1);
+    --header-bg: rgba(45, 45, 45, 0.5);
+    --accent-color: #007aff;
+    --close-hover: #ff453a;
+    --radius-lg: 12px;
+    --radius-sm: 6px;
+}
+
+/* --- 2. Dock 运行指示点 --- */
+.dock-item {
+    position: relative;
+    transition: transform 0.2s;
+}
+
+.dock-item.running::after {
+    content: '';
+    position: absolute;
+    bottom: -6px; /* 调整圆点位置 */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+    pointer-events: none;
+}
+
+/* --- 窗口主体：磨砂玻璃质感 --- */
+.win-container {
+    position: fixed;
+    background: rgba(28, 28, 28, 0.75); /* 深色半透明 */
+    backdrop-filter: blur(25px) saturate(180%); /* 高级感拉满的模糊 */
+    -webkit-backdrop-filter: blur(25px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.15); /* 极细边框 */
+    border-radius: 12px;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), 
+                0 0 0 1px rgba(0, 0, 0, 0.2);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s;
+}
+
+/* --- 标题栏：简约而不简单 --- */
+.win-header {
+    height: 40px;
+    background: rgba(255, 255, 255, 0.08); /* 稍微调高一点透明度 */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 15px;
+    cursor: move;
+    position: relative;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* 标题文字居中 */
+.win-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    pointer-events: none;
+}
+
+/* --- 左侧刷新按钮 --- */
+.win-controls-left .win-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ccc;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    font-size: 10px;
+}
+
+/* --- 右侧控制按钮：仿 macOS 红黄绿 --- */
+.win-controls-right {
+    display: flex;
+    gap: 8px;
+}
+
+.win-btn {
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    outline: none;
+}
+/* 刷新按钮容器 */
+.refresh-btn {
+    position: relative;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 6px !important;
+    width: 28px !important;
+    height: 28px !important;
+}
+
+/* 绘制 CSS 箭头图标 */
+.refresh-icon {
+    width: 12px;
+    height: 12px;
+    border: 2px solid #ccc;
+    border-radius: 50%;
+    border-top-color: transparent; /* 留出缺口 */
+    position: relative;
+    display: inline-block;
+    transition: all 0.3s;
+}
+
+/* 箭头尖端 */
+.refresh-icon::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -1px;
+    border-width: 4px 0 4px 4px;
+    border-style: solid;
+    border-color: transparent transparent transparent #ccc;
+    transform: rotate(-45deg);
+}
+
+/* 悬停效果 */
+.refresh-btn:hover .refresh-icon {
+    border-color: #fff;
+    border-top-color: transparent;
+}
+.refresh-btn:hover .refresh-icon::before {
+    border-left-color: #fff;
+}
+
+/* 旋转动画类 */
+.rotating {
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+/* 赋予按钮颜色 */
+.win-btn.close { background: #ff5f57; color: transparent; width: 12px; height: 12px; border-radius: 50%; }
+.win-btn.maximize { background: #28c940; color: transparent; width: 12px; height: 12px; border-radius: 50%; }
+.win-btn.minimize { background: #febc2e; color: transparent; width: 12px; height: 12px; border-radius: 50%; }
+
+/* 悬停时显示图标（可选） */
+.win-controls-right:hover .win-btn { color: rgba(0,0,0,0.5); font-size: 9px; font-weight: bold; }
+
+/* --- 窗口内容区 --- */
+.win-body {
+    flex: 1;
+    background: #fff; /* 这里建议保持纯白或纯黑，方便阅读 iframe 内容 */
+    margin: 0 2px 2px 2px; /* 留出一点缝隙露出玻璃底色 */
+    border-radius: 0 0 10px 10px;
+    overflow: hidden;
+}
+
+/* --- 滚动条美化 --- */
+.win-body::-webkit-scrollbar { width: 6px; }
+.win-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+
+.win-body iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+}
+
+/* --- 4. 万能拉伸控制点 (8个方向) --- */
+.resizer { position: absolute; z-index: 100; }
+
+.resizer.t { top: 0; left: 0; width: 100%; height: 5px; cursor: n-resize; }
+.resizer.b { bottom: 0; left: 0; width: 100%; height: 5px; cursor: s-resize; }
+.resizer.l { left: 0; top: 0; width: 5px; height: 100%; cursor: w-resize; }
+.resizer.r { right: 0; top: 0; width: 5px; height: 100%; cursor: e-resize; }
+
+.resizer.tl { top: 0; left: 0; width: 12px; height: 12px; cursor: nw-resize; }
+.resizer.tr { top: 0; right: 0; width: 12px; height: 12px; cursor: ne-resize; }
+.resizer.bl { bottom: 0; left: 0; width: 12px; height: 12px; cursor: sw-resize; }
+.resizer.br { bottom: 0; right: 0; width: 12px; height: 12px; cursor: se-resize; }
+
+/* --- 5. 特殊状态 --- */
+
+/* 最大化 */
+.win-container.is-maximized {
+    top: 0 !important; left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    border-radius: 0;
+    transition: all 0.2s ease-out;
+}
+
+.modal-content {
+    background: #222; border-radius: 20px;
+    padding: 15px; width: 85%; max-width: 900px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* 确保左右控制区有固定的层级，不会被标题盖住 */
+.win-controls-left, .win-controls-right {
+    display: flex;
+    z-index: 2; /* 保证按钮在标题上方，可以点击 */
+    align-items: center; /* 垂直居中 */
+    gap: 5px;           /* 按钮之间的间距 */
+}
+
+/* --- 6. 移动端适配：悬浮卡片风格 --- */
+@media (max-width: 768px) {
+    .win-container {
+        /* 1. 位置：居中悬浮，不再顶死边缘 */
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important; /* 绝对居中 */
+        
+        /* 2. 尺寸：留出边距，露出背景 */
+        width: 90vw !important;    /* 宽度占 90% */
+        height: 75vh !important;   /* 高度占 75% */
+        max-height: 600px;         /* 防止在长屏手机上拉得太长 */
+        
+        /* 3. 视觉：找回圆角和阴影 */
+        border-radius: 20px !important; 
+        background: rgba(35, 35, 35, 0.9) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5) !important;
+        
+        display: none; /* 初始隐藏 */
+        flex-direction: column !important;
+    }
+
+    /* 4. 标题栏：精致化 */
+    .win-header {
+        height: 48px !important;
+        background: transparent !important; /* 保持通透 */
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* 5. 按钮：手机端只保留一个明显的关闭按钮 */
+    .win-controls-right { display: flex !important; }
+    .win-btn.close {
+        width: 28px !important;
+        height: 28px !important;
+        background: rgba(255, 255, 255, 0.1) !important; /* 柔和的灰色圆圈 */
+        color: #eee !important;
+        border-radius: 50% !important;
+        font-size: 16px !important;
+    }
+.win-controls-left { display: flex !important; }
+    .win-btn.maximize, .win-btn.minimize { display: none !important; }
+
+    .win-body {
+        margin: 5px !important;
+        border-radius: 12px !important;
+        background: #fff; /* 或者跟随主题色 */
+    }
+}
+/* =========
+    看图
+========= */
+/* 相册整体容器 */
+.gallery-wrapper {
+    display: flex;
+    height: 100%;
+    background: #f5f5f7;
+    color: #333;
+}
+
+/* 左侧分类栏 */
+.gallery-aside {
+    width: 120px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border-right: 1px solid #ddd;
+    flex-shrink: 0;
+    overflow-y: auto;
+}
+
+.aside-item {
+    padding: 12px 15px;
+    cursor: pointer;
+    font-size: 13px;
+    border-bottom: 1px solid #eee;
+    transition: all 0.2s;
+}
+
+.aside-item.active {
+    background: #007aff !important;
+    color: white !important;
+}
+
+/* 右侧图片网格 */
+.gallery-main {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    display: grid;
+    /* minmax 确保图片有最小宽度，不会无限挤压 */
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-gap: 12px;
+    align-content: start;
+}
+
+/* 图片卡片容器 */
+.photo-card {
+    position: relative;
+    aspect-ratio: 16 / 9; /* 强制比例，防止重叠 */
+    background: #e0e0e0;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+				height: 9vh;
+}
+
+/* 图片本身 */
+.photo-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    cursor: zoom-in;
+    opacity: 0; /* 默认隐藏，配合懒加载 */
+    transition: opacity 0.5s ease;
+}
+
+/* 图片加载后的显示状态 */
+.photo-card img.loaded {
+    opacity: 1;
+}
+
+/* 底部文字条 */
+.photo-info {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    background: rgba(0,0,0,0.5);
+    color: white;
+    font-size: 10px;
+    padding: 3px 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+}
+
+/* 手机端适配 */
+@media (max-width: 768px) {
+	.photo-card {
+				 aspect-ratio: 4 / 3;
+	}
+    .gallery-aside { width: 90px; }
+    .gallery-main { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); padding: 8px; }
+    .aside-item { padding: 10px; font-size: 12px; }
+}
