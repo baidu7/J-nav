@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     return parseInt(saved);
                 })();
-    
+
                 // 抢跑渲染缓存
                 const initialCache = localStorage.getItem('nt_cache_folder_' + activeIdx);
                 if (initialCache) {
@@ -163,18 +163,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     featuredContainer.className = 'nt-grid';
                     setTimeout(() => window.loadFolderIcons(featuredContainer), 0);
                 }
-    
+
                 const updateTabs = (activeIndex) => {
                     tabsContainer.innerHTML = folders.map((folder, index) => `
                         <div class="nt-tab ${index == activeIndex ? 'active' : ''}" data-index="${index}">${folder.name}</div>
                     `).join('');
                 };
                 updateTabs(activeIdx);
-    
+
                 const renderFolder = (folderIndex, isFirstLoad = false, forceUpdate = false) => {
                     const targetFolder = folders[folderIndex];
                     if (!targetFolder) return;
-    
+
                     const allLinks = getAllBookmarks(targetFolder.children || [targetFolder]);
                     const newHTML = allLinks.map(link => {
                         let d = ""; try { d = new URL(link.url).hostname; } catch(e) {}
@@ -183,9 +183,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             <img data-src="${iconUrl}" data-name="${link.name}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
                             <span>${link.name}</span></a>`;
                     }).join('');
-    
+
                     if (!forceUpdate && featuredContainer.innerHTML === newHTML) return;
-    
+
                     if (!featuredContainer.classList.contains('nt-grid')) {
                         featuredContainer.classList.add('nt-grid');
                     }
@@ -195,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.loadFolderIcons(featuredContainer);
                     if (!isFirstLoad) document.getElementById('nt-scroll-area').scrollTop = 0;
                 };
-    
+
                 tabsContainer.onclick = (e) => {
                     // 1. 明确获取点击的 Tab 元素
                     const tab = e.target.closest('.nt-tab');
@@ -237,19 +237,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         featuredContainer.classList.remove('slide-in-right', 'slide-in-left');
                     }, 400);
                 };
-    
+
                 renderFolder(activeIdx, true);
                 sidebarContainer.innerHTML = createTreeHTML(folders);
-    
+
                 // --- ✨ 滑动增强逻辑 (已修复重复累加) ---
                 const scrollArea = document.getElementById('nt-scroll-area');
                 let touchStartX = 0, touchStartY = 0;
-    
+
                 scrollArea.addEventListener('touchstart', (e) => {
                     touchStartX = e.touches[0].clientX;
                     touchStartY = e.touches[0].clientY;
                 }, { passive: true });
-    
+
                 scrollArea.addEventListener('touchend', (e) => {
                     const dx = e.changedTouches[0].clientX - touchStartX;
                     const dy = e.changedTouches[0].clientY - touchStartY;
@@ -299,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         setTimeout(() => featuredContainer.classList.remove('slide-in-right', 'slide-in-left'), 400);
                     }
                 }, { passive: true });
-    
+
             } else {
                 setTimeout(init, 50);
             }
@@ -404,7 +404,7 @@ window.addEventListener('wheel', (e) => {
     const wallpaperModal = document.getElementById('wallpaper-modal');
     const sidebar = document.getElementById('nt-sidebar');
 
-    // 2. 核心判断：只要这三个里面有一个是“打开状态”，就彻底拦截背景滚动
+    // 2. 核心判断：只要这三个里面有一个是"打开状态"，就彻底拦截背景滚动
     const isAnyModalOpen = 
         (calendarModal && calendarModal.style.display === 'flex') || 
         (wallpaperModal && wallpaperModal.style.display === 'flex') || 
@@ -515,7 +515,7 @@ window.openCalendar = function() {
             headerToolbar: { 
                 left: 'prev', 
                 center: 'title', 
-                right: 'today next' // 调整了一下顺序，让“今天”在左边更好看
+                right: 'today next' // 调整了一下顺序，让"今天"在左边更好看
             },
             dayCellContent: arg => {
                 const d = Solar.fromDate(arg.date), l = d.getLunar();
@@ -579,10 +579,7 @@ async function renderCategory(type) {
         effects: '特效背景', 
         history: '必应壁纸',
         dynamic: '精选动态壁纸',
-        xiran: '惜染壁纸',
-        xrfj4k: '惜染风景4k',
         shouji: '手机端', 
-								xiransj: '惜染手机端壁纸',
         zipai: '随手拍', 
         custom: '自定义设置', 
         local: '上传记录' 
@@ -618,7 +615,7 @@ async function renderCategory(type) {
 
     // 4. 空数据处理
     if (list.length === 0) {
-        const tip = (type === 'local') ? '暂无上传记录，请先在“自定义”中上传。' : '该分类下暂无内容';
+        const tip = (type === 'local') ? '暂无上传记录，请先在"自定义"中上传。' : '该分类下暂无内容';
         wpGrid.innerHTML = `<div style="padding:20px; color:gray;">${tip}</div>`;
         return;
     }
@@ -671,10 +668,6 @@ async function renderCategory(type) {
         if (thumb.includes('bing.com') && !thumb.includes('&w=')) {
             thumb += '&w=480&h=270&c=7';
         } 
-        if (thumb.includes('xiranimg.com') && !thumb.includes('index.php')) {
-            thumb = thumb.replace('https://xiranimg.com/', 'https://xiranimg.com/index.php?action=file&file=');
-            thumb += '&resize=320';
-        }
         const finalWallpaper = item.fullUrl || item.url;
         return `
             <div class="wp-thumb" onclick="setWallpaper('${finalWallpaper}')">
@@ -696,7 +689,7 @@ async function fetchBingHistory() {
         const text = await res.text();
         
         // 修改正则：更精准地只抓取 id 后面那串核心字符
-        const imgRegex = /id=([^&" \)]+).*?(\d{4}-\d{2}-\d{2})/g;
+        const imgRegex = /id=([^&" \\)]+).*?(\d{4}-\d{2}-\d{2})/g;
         const historyList = [];
 								const seenIds = new Set();
         let match;
@@ -805,7 +798,7 @@ window.deleteLocalWp = (event, url) => {
     localHistory = localHistory.filter(item => item.url !== url);
     localStorage.setItem('nt_local_history', JSON.stringify(localHistory));
 
-    // 重新渲染当前“本地记录”分类，让图片立刻消失
+    // 重新渲染当前"本地记录"分类，让图片立刻消失
     renderCategory('local');
 };
 // --- 5. 初始化 ---

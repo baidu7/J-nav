@@ -19,7 +19,7 @@ J-Nav 是一个基于 HTML/CSS/JS 的轻量级、极简风格个人导航站。�
 
 1. 克隆项目
 ```bash
-git clone [https://github.com/baidu8/J-Nav.git](https://github.com/baidu8/J-Nav.git)
+git clone [https://github.com/baidu7/J-nav.git](https://github.com/baidu7/J-nav.git)
 ```
 2. 修改配置
 打开 data.js，按照现有格式修改为你自己的书签数据：
@@ -39,10 +39,12 @@ window.bookmarkData = [
 直接双击 index.html 即可运行。
 ```Plaintext
 J-Nav/
+├── css/                 # 样式 (style.css / newtab.css)
+├── effects/             # 特效背景 (matrix / sakura / xuehua / yanhua)
 ├── icons/               # 图标资源 (SVG Logo, 搜索引擎图标)
-├── index.html           # 首页 (建议由 nav.html 更名而来)
-├── style.css            # 响应式样式表
-├── script.js            # 核心交互逻辑
+├── js/                  # 脚本 (script.js / newtab.js / dock.js / wallpaper-data.js)
+├── index.html           # 标签页版首页
+├── new.html             # 极简导航版首页
 ├── data.js              # 你的书签数据
 ├── site.webmanifest     # PWA 配置文件
 └── README.md            # 项目说明
@@ -55,4 +57,4 @@ J-Nav/
 性能：优化了图片加载逻辑，设置了 2s 异常自动处理。
 
 📄 开源协议
-本项目采用 [MIT License](https://github.com/baidu8/J-Nav/blob/main/LICENSE) 协议。
+本项目采用 [MIT License](https://github.com/baidu7/J-nav/blob/main/LICENSE) 协议。
