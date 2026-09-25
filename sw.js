@@ -1,4 +1,4 @@
-const CACHE_NAME = 'j-nav-v6'; 
+const CACHE_NAME = 'j-nav-v9'; // 2026-09-25: 沉浸模式禁用日历 // 2026-09-25: 新增壁纸API/动态视频/按钮与dock样式 // 2026-09-25: 壁纸类型判断/时间布局/底栏断点更新 
 
 const PRE_CACHE_ASSETS = [
     '/',

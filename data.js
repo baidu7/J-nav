@@ -95,6 +95,11 @@ window.bookmarkData = [
                 "name": "爱影剧网",
                 "type": "bookmark",
                 "url": "https://www.2yjw.com/"
+              },
+              {
+                "name": "全球高清实况摄像头！ - SkylineWebcams",
+                "type": "bookmark",
+                "url": "https://www.skylinewebcams.com/"
               }
             ]
           },
@@ -466,11 +471,6 @@ window.bookmarkData = [
                 "url": "https://hexrom.com/"
               }
             ]
-          },
-          {
-            "name": "网易云音乐",
-            "type": "bookmark",
-            "url": "https://music.163.com/#"
           }
         ]
       },
@@ -2830,7 +2830,7 @@ window.bookmarkData = [
         "type": "folder",
         "children": [
           {
-            "name": "baidu7 (江大爷)",
+            "name": "baidu7",
             "type": "bookmark",
             "url": "https://github.com/baidu7"
           },
@@ -2872,5 +2872,10 @@ window.bookmarkData = [
         ]
       }
     ]
+  },
+  {
+    "name": "其他书签",
+    "type": "folder",
+    "children": []
   }
 ];

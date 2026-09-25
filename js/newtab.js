@@ -388,10 +388,11 @@ document.addEventListener('DOMContentLoaded', initSearchEngine);
 // --- 7. 时间与滚动逻辑 ---
 function updateTime() {
     const now = new Date();
-    const clock = document.getElementById('clock');
-    if(clock) clock.textContent = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
-    const dateEl = document.getElementById('date');
-    if(dateEl) dateEl.textContent = now.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' });
+    const timeStr = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
+    const dateStr = now.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' });
+    // 同时更新 header 大时钟（手机端）与天气下方小时钟（电脑端）
+    document.querySelectorAll('#clock, #clock-pc').forEach(el => { el.textContent = timeStr; });
+    document.querySelectorAll('#date, #date-pc').forEach(el => { el.textContent = dateStr; });
 }
 setInterval(updateTime, 1000);
 updateTime();
@@ -747,14 +748,26 @@ window.setWallpaper = (url) => {
     document.body.style.overflow = 'hidden'; // 再次确保 body 不会出现滚动条
     
     // --- 2. 识别类型 ---
-    const isImage = /\.(jpg|jpeg|png|gif|webp|base64)/i.test(url) || url.startsWith('data:image');
-    const isVideo = /\.(mp4|webm|ogg)/i.test(url) || url.includes('video');
-    const isHtml = url.includes('.html') || (url.startsWith('http') && !isImage && !isVideo);
+    // 有道云笔记附件直链（yws/api/personal/file）：实际返回的是图片
+    const isYdNote = url.includes('note.youdao.com/yws/api/personal/file');
+    // 本地特效页面（effects/*.html 相对路径）：必须保留 iframe
+    const isLocalEffect = /^(effects|\.\/effects)\//i.test(url) && /\.html$/i.test(url);
+    // 去掉 URL 中的 .html：很多站点无后缀也能访问，且 .html 页面常被禁止嵌入 iframe
+    const cleanUrl = url.replace(/\.html(?=[#?]|$)/gi, '');
+
+    // 已知的图片服务（URL 无扩展名但直接返回图片），统一走图片背景
+    const isImageApi = ['picsum.photos', 'img.paulzzh.com', 'bing.biturl.top', 't.mwm.moe', 't.alcy.cc', 'loremflickr.com'].some(d => url.includes(d));
+    const isImage = /\.(jpg|jpeg|png|gif|webp|base64)/i.test(cleanUrl) || url.startsWith('data:image') || isYdNote || isImageApi;
+    const isVideo = /\.(mp4|webm|ogg)/i.test(cleanUrl) || url.includes('video');
+    const isHtml = isLocalEffect || (cleanUrl.startsWith('http') && !isImage && !isVideo);
+
+    // 实际加载的地址：本地特效用原样，其余用去掉 .html 后的地址
+    const loadUrl = isLocalEffect ? url : cleanUrl;
 
     if (isHtml) {
         // --- 特效网页模式 ---
         bgLayer.innerHTML = `
-            <iframe src="${url}" 
+            <iframe src="${loadUrl}" 
                     style="width:100%; height:100%; border:none; display:block; pointer-events:none;"
                     scrolling="no">
             </iframe>`;
@@ -767,12 +780,12 @@ window.setWallpaper = (url) => {
                 width: auto; height: auto; 
                 transform: translate(-50%, -50%); 
                 object-fit: cover; z-index: -1;">
-                <source src="${url}" type="video/mp4">
+                <source src="${loadUrl}" type="video/mp4">
             </video>`;
     } else {
         // --- 图片背景 ---
         bgLayer.style.transition = "background-image 0.5s ease-in-out";
-        bgLayer.style.backgroundImage = `url(${url})`;
+        bgLayer.style.backgroundImage = `url(${loadUrl})`;
         
         // 本地上传记录逻辑
         if (url.startsWith('data:image')) {
@@ -890,36 +903,34 @@ window.toggleZenMode = function(e) {
     }
 };
 
-// 绑定时间点击 (确保能反复点击切换)
-const clockBtn = document.getElementById('clock');
-if (clockBtn) {
-    clockBtn.style.cursor = 'pointer';
-    clockBtn.onclick = window.toggleZenMode; 
-}
-
-const oldMask = document.getElementById('zen-mask');
-if (oldMask) oldMask.remove();
-
-// 3. 统一绑定入口 (直接获取元素绑定，不嵌套多层加载)
-(function() {
-    const clock = document.getElementById('clock');
-    const date = document.getElementById('date');
-
-    if (clock) {
-        clock.style.cursor = 'pointer';
-        clock.onclick = (e) => {
+// 绑定时间点击 (确保能反复切换)：header 大时钟与天气下方小时钟共用
+const bindClockClick = (id) => {
+    const el = document.getElementById(id);
+    if (el) {
+        el.style.cursor = 'pointer';
+        el.onclick = (e) => {
             if (typeof window.toggleZenMode === 'function') window.toggleZenMode(e);
         };
     }
+};
+bindClockClick('clock');
+bindClockClick('clock-pc');
 
-    if (date) {
-        date.style.cursor = 'pointer';
-        date.onclick = (e) => {
+const bindDateClick = (id) => {
+    const el = document.getElementById(id);
+    if (el) {
+        el.style.cursor = 'pointer';
+        el.onclick = (e) => {
             e.stopPropagation();
             if (typeof window.openCalendar === 'function') window.openCalendar();
         };
     }
-})();
+};
+bindDateClick('date');
+bindDateClick('date-pc');
+
+const oldMask = document.getElementById('zen-mask');
+if (oldMask) oldMask.remove();
 
 // 4. Esc 键支持：退出沉浸模式、关闭日历、关闭壁纸弹窗
 document.addEventListener('keydown', (e) => {

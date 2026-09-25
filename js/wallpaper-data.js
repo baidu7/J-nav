@@ -1,10 +1,15 @@
 window.wallpaperLib = {
 					'bing': [
 									{ name: 'Lorem Picsum', url: 'https://picsum.photos/1920/1080' },
-									{ name: '东方Project', url: 'https://img.paulzzh.com/touhou/random' }
+									{ name: '东方Project', url: 'https://img.paulzzh.com/touhou/random' },
+					{ name: '必应每日', url: 'https://bing.biturl.top/?resolution=1920&format=image&index=0&mkt=zh-CN' },
+					{ name: '次元动漫横屏', url: 'https://t.mwm.moe/pc' }
 					],
 					'dynamic': [
-									{ name: '1', url: 'https://v.828111.xyz/动态壁纸.mp4' }
+									{ name: '1', url: 'https://v.828111.xyz/动态壁纸.mp4' },
+					{ name: '黑猴', url: 'https://files.itab.link/itab/defaultWallpaper/videos/80.mp4' },
+					{ name: '红衣女子', url: 'https://files.itab.link/itab/defaultWallpaper/videos/83.mp4' },
+					{ name: '卡通', url: 'https://files.itab.link/itab/defaultWallpaper/videos/37.mp4' }
 					],
 					'zipai': [
 						{ name: '自己拍的', url: 'https://note.youdao.com/yws/api/personal/file/WEBe5370dcfb2ac1c5d950d785f24af4375?method=download&amp;shareKey=1707539a369fc6cee2d21b0bf9c76c0b' },
@@ -33,6 +38,8 @@ window.wallpaperLib = {
 					],
 					'shouji': [
 						{ name: '和平', url: 'https://v.828111.xyz/heping.mp4' },
-						{ name: 'Lorem Picsum', url: 'https://picsum.photos/1080/1920' }
+						{ name: 'Lorem Picsum', url: 'https://picsum.photos/1080/1920' },
+					{ name: '次元动漫竖屏', url: 'https://t.mwm.moe/mp' },
+					{ name: '萌版竖屏', url: 'https://t.alcy.cc/moemp' }
 					],
 	};
