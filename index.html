@@ -219,7 +219,7 @@
 					        </div>
 					    </div>
 				</div>
-  <a href="new.html" id="nt-page-switcher" title="切换页面">
+  <a href="new" id="nt-page-switcher" title="切换页面">
       <svg viewBox="0 0 24 24" width="24" height="24">
           <path fill="currentColor" d="M16 17V14H9V10H16V7L21 12L16 17ZM14 2H4C2.9 2 2 2.9 2 4V20C2 21.1 2.9 22 4 22H14C15.1 22 16 21.1 16 20V16H14V20H4V4H14V8H16V4C16 2.9 15.1 2 14 2Z" />
       </svg>
@@ -234,9 +234,15 @@
 				<script>
 				    if ('serviceWorker' in navigator) {
 				        window.addEventListener('load', () => {
-				            navigator.serviceWorker.register('sw.js')
-				                .then(reg => console.log('NewTab SW Registered'))
-				                .catch(err => console.log('NewTab SW Failed', err));
+				            // 本地预览（localhost）注销 SW 并清缓存，避免缓存干扰；线上照常注册
+				            if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+				                navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+				                if (window.caches) caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+				            } else {
+				                navigator.serviceWorker.register('sw.js')
+				                    .then(reg => console.log('NewTab SW Registered'))
+				                    .catch(err => console.log('NewTab SW Failed', err));
+				            }
 				        });
 				    }
 				</script>
